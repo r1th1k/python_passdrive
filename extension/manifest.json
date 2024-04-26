@@ -1,0 +1,41 @@
+{
+  "name": "Passdrive",
+  "version": "1.0",
+  "manifest_version": 3,
+  "description": "Send a message to a native application.",
+  "icons": {
+    "128": "images/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*/*"
+      ],
+      "js": [
+        "scripts/content.js"
+      ]
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "nativeMessaging",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["scripts/content.js"],
+      "matches": ["*://*/*"]
+    }
+  ]
+}

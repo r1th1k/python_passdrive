@@ -1,0 +1,9 @@
+{
+  "name": "com.pass.drive",
+  "description": "hi",
+  "path": "/Users/rithik-tt0170/Passdrive/host/passdrive.sh",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://dmbkciolnggkclmcedfipibnclodjjpl/"
+  ]
+}
