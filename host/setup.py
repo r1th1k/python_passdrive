@@ -3,9 +3,8 @@ import os
 import subprocess
 import json
 import getpass
-
-protected_dir = '/Volumes/PASSDRIVE/.protected'
-masterpass_dir = '/Volumes/PASSDRIVE/.master'
+from Main.main import *
+from globals import *
 
 def save_to_config(config):
     with open("/Users/rithik-tt0170/Passdrive/host/config.json", "w") as json_file:
@@ -16,26 +15,6 @@ def get_config():
         config = json.load(json_file)
     return config
 
-def check_master_password(master_password):
-    masterpass_dir = '/Volumes/PASSDRIVE/.master'
-    master_file = masterpass_dir + '/master'
-    master_file = os.path.join(masterpass_dir, "master")
-
-    sha_obj = sha256()
-    sha_obj.update(master_password.encode())
-    hashed_master_password = sha_obj.hexdigest()
-
-    if(os.path.exists(master_file)):
-        with open(master_file, 'r') as f:
-            stored_master = f.read()
-    else:
-        print("Master password file not found!")
-    
-    if hashed_master_password == stored_master:
-        return True
-    else:
-        return False
-    
 def master_password_setup():
     masterpass_file = os.path.join(masterpass_dir, "master")
     sha_obj = sha256()
@@ -74,23 +53,27 @@ def update_password(domain_name, username, password):
         with open(username_file, 'w') as f:
             f.write(password)
             print("Password Successfully Updated!")
-    
-def check_usb_present():
-    output = subprocess.run(['diskutil', 'list'], capture_output=True, text=True)
-    
-    for line in output.stdout.split('\n'):
-        if 'external' in line.lower():
-            return True
-    return False
 
+def list_directory(directory):
+    try:
+        entries = os.listdir(directory)
+        for entry in entries:
+            print(entry)
+
+    except OSError as e:
+        print(f"Error: {e}")
 
 def main():
     if not os.path.exists(protected_dir) and (not os.path.exists(masterpass_dir)):
-        print("No configurations found! Creating new passdrive")
+        print("No configurations found! Creating new config")
+        list_directory(volumes)
+        pendrive_name = input("Enter Pendrive name: ")
+        print("Adding common settings to config")
+        config = {"passlen": 20, "alpha": True, "spcl": True, "num": True, "pendrive": pendrive_name}
+        save_to_config(config)
         os.makedirs(protected_dir)
         os.makedirs(masterpass_dir)
 
-        masterpass_file = os.path.join(masterpass_dir, "master")
         sha_obj = sha256()
         sha_obj_v = sha256()
 
@@ -107,25 +90,28 @@ def main():
                 f.write(hashed_master_password)
                 print("Master Password setup Successfull")
 
-        print("Adding common settings to config")
-        config = {"passlen": 20, "alpha": True, "spcl": True, "num": True}
-        save_to_config(config)
         exit(0)
 
     if os.path.exists(protected_dir) and (os.path.exists(masterpass_dir)):
         print("Configuration found!")
         master = getpass.getpass("Enter Master Password: ")
-        if(not check_master_password(master)):
+        if(os.path.exists(masterpass_file)):   
+            with open(masterpass_file, 'r') as f:
+                stored_master = f.read()
+        else:
+            logging.debug("[X] Master password file not found!")
+
+        if(not Checks.check_master_password(master, stored_master)):
                 print("Wrong master password!")
                 exit(0)
    
-        choice = int(input("1. Update Master password\n2. Update Website Password\n3. List password\n4. Change Password Default Configs\n\n"))
-        print("Enter You Choice: ")
+        print("1. Update Master password\n2. Update Website Password\n3. List password\n4. Change Password Default Configs\n\n")
+        choice = int(input("Enter You Choice: "))
         
         if choice == 1:
             old_master = getpass.getpass("Enter Master Password: ")
 
-            if(not check_master_password(old_master)):
+            if(not Checks.check_master_password(old_master)):
                 print("Wrong master password!")
                 exit(0)
             else:
@@ -139,15 +125,17 @@ def main():
             update_password(domain_name, user_name, password)
 
         if choice == 3:
-            subprocess.check_call(["/opt/homebrew/bin/tree", protected_dir])
+            subprocess.check_call([tree, protected_dir])
         
         if choice == 4:
             config = get_config()
             
             reset = input("Do you want to reset: ")
-            if reset!="" or reset!="0" or reset!="no":
-                config = {"passlen": 20, "alpha": True, "spcl": True, "num": True}
+            if reset=="yes":
+                config = {"passlen": 20, "alpha": True, "spcl": True, "num": True, "pendrive": pendrive}
             else:
+                list_directory(volumes)
+                config['pendrive'] = input("Enter Pendrive name: ")
                 config['passlen'] = input("Enter Password Length: ")
                 print("\n1 => yes\t\t0 or Enter => no")
                 config['alpha'] = bool(input("Need Alphabets: "))
@@ -161,7 +149,7 @@ def main():
         exit(0)
 
 if __name__ == '__main__':
-    if check_usb_present():
+    if Checks.check_usb_present():
         main()
     else:
         print("[X] USB not detected!!")
